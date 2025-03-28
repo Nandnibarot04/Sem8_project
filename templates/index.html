@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Categorization | AI-Powered Classification</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="container">
+            <div class="header">
+                <h1>News Categorization</h1>
+                <p class="subtitle">Enter a news headline to determine its category </p>
+            </div>
+            
+            <div class="card">
+                <div class="input-group">
+                    <label for="headline">
+                        <i class="fas fa-newspaper"></i> News Headline
+                    </label>
+                    <input type="text" id="headline" placeholder="Enter a news headline..." autofocus>
+                </div>
+                
+                <div class="input-group">
+                    <label for="model">
+                        <i class="fas fa-robot"></i> Classification Model
+                    </label>
+                    <div class="select-wrapper">
+                        <select id="model">
+                            <option value="logistic">Logistic Regression</option>
+                            <option value="svm">Support Vector Machine</option>
+                            <option value="roberta">RoBERTa (Deep Learning)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button id="predict-btn" onclick="predictCategory()">
+                    <span class="btn-text">Predict Category</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing headline...</p>
+                </div>
+            </div>
+            
+            <div class="result-container" id="resultContainer">
+                <div class="result-header">
+                    <h2>Classification Result</h2>
+                    <div id="modelBadge" class="model-badge badge-logistic">Logistic Regression</div>
+                </div>
+                <div class="result-content">
+                    <div class="category-icon">
+                        <i class="fas fa-tag"></i>
+                    </div>
+                    <p id="result">Science</p>
+                </div>
+                <div class="result-footer">
+                    <button id="try-again-btn" onclick="resetForm()">
+                        <i class="fas fa-redo"></i> Try Another Headline
+                    </button>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p>Powered by Machine Learning | News Categorization System</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function predictCategory() {
+            const headline = document.getElementById("headline").value;
+            if (!headline) {
+                showError("Please enter a news headline");
+                return;
+            }
+            
+            const model = document.getElementById("model").value;
+            const loading = document.getElementById("loading");
+            const resultContainer = document.getElementById("resultContainer");
+            const modelBadge = document.getElementById("modelBadge");
+            const predictBtn = document.getElementById("predict-btn");
+            
+            // Hide result and show loading
+            resultContainer.classList.remove("show");
+            loading.classList.add("show");
+            predictBtn.disabled = true;
+            
+            fetch("/predict", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ headline, model })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Prediction failed");
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Hide loading
+                loading.classList.remove("show");
+                predictBtn.disabled = false;
+                
+                // Update result
+                document.getElementById("result").innerText = data.category;
+                
+                // Update model badge
+                modelBadge.className = "model-badge";
+                switch(model) {
+                    case "logistic":
+                        modelBadge.classList.add("badge-logistic");
+                        modelBadge.innerText = "Logistic Regression";
+                        break;
+                    case "svm":
+                        modelBadge.classList.add("badge-svm");
+                        modelBadge.innerText = "Support Vector Machine";
+                        break;
+                    case "roberta":
+                        modelBadge.classList.add("badge-roberta");
+                        modelBadge.innerText = "RoBERTa (Deep Learning)";
+                        break;
+                }
+                
+                // Show result
+                resultContainer.classList.add("show");
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                loading.classList.remove("show");
+                predictBtn.disabled = false;
+                showError("An error occurred while making the prediction");
+            });
+        }
+        
+        function showError(message) {
+            const errorEl = document.createElement("div");
+            errorEl.className = "error-message";
+            errorEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+            document.querySelector(".card").appendChild(errorEl);
+            
+            setTimeout(() => {
+                errorEl.classList.add("hide");
+                setTimeout(() => errorEl.remove(), 300);
+            }, 3000);
+        }
+        
+        function resetForm() {
+            document.getElementById("headline").value = "";
+            document.getElementById("resultContainer").classList.remove("show");
+            document.getElementById("headline").focus();
+        }
+        
+        // Allow pressing Enter key to trigger prediction
+        document.getElementById("headline").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                predictCategory();
+            }
+        });
+    </script>
+</body>
+</html>
